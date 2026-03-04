@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: speedtar-config
+data:
+  NODE_ENV: "development"
+  NEXT_PUBLIC_API_URL: "https://api-dev.hitension.live/api/v1"
+  API_URL: "https://api-dev.hitention.live"
+  FRONTEND_URL: "https://shop-dev.hitension.live"
+  RATE_LIMIT_MAX_REQUESTS: "1000"

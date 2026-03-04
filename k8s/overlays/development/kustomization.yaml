@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: speedtar-dev
+
+resources:
+  - ../../base
+
+namePrefix: dev-
+
+commonLabels:
+  environment: development
+
+images:
+  - name: edikkan/speedtar-frontend
+    newTag: dev
+  - name: edikkan/speedtar-backend
+    newTag: dev
+
+replicas:
+  - name: frontend
+    count: 1
+  - name: backend
+    count: 1
+
+patchesStrategicMerge:
+  - configmap-patch.yaml
+
+patches:
+  - target:
+      kind: Ingress
+      name: speedtar-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: shop-dev.hitension.live
+      - op: replace
+        path: /spec/rules/1/host
+        value: api-dev.hitension.live
+      - op: replace
+        path: /spec/tls/0/hosts
+        value:
+          - shop-dev.hitension.live
+          - api-dev.hitension.live

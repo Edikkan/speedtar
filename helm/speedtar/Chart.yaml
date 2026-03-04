@@ -1,0 +1,27 @@
+apiVersion: v2
+name: speedtar
+description: A Helm chart for Speedtar E-commerce Application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ecommerce
+  - nextjs
+  - nodejs
+  - postgres
+  - redis
+home: https://shop.hitension.live
+sources:
+  - https://github.com/edikkan/speedtar
+maintainers:
+  - name: Speedtar Team
+    email: support@speedtar.com
+dependencies:
+  - name: postgresql
+    version: 12.12.10
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 18.6.1
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

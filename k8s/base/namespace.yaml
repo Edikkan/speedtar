@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: speedtar
+  labels:
+    name: speedtar
+    app.kubernetes.io/name: speedtar
+    app.kubernetes.io/component: namespace

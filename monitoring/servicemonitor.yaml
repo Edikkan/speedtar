@@ -1,0 +1,126 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: speedtar-metrics
+  namespace: speedtar
+  labels:
+    app: speedtar
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: speedtar
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+    - port: http
+      interval: 30s
+      path: /api/v1/health
+  namespaceSelector:
+    matchNames:
+      - speedtar
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: speedtar-alerts
+  namespace: speedtar
+  labels:
+    app: speedtar
+    release: prometheus
+spec:
+  groups:
+    - name: speedtar
+      rules:
+        # High error rate alert
+        - alert: SpeedtarHighErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{namespace="speedtar",status=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{namespace="speedtar"}[5m]))
+            ) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High error rate detected in Speedtar"
+            description: "Error rate is above 5% for more than 5 minutes"
+        
+        # High latency alert
+        - alert: SpeedtarHighLatency
+          expr: |
+            histogram_quantile(0.95, 
+              sum(rate(http_request_duration_seconds_bucket{namespace="speedtar"}[5m])) by (le)
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High latency detected in Speedtar"
+            description: "95th percentile latency is above 2 seconds"
+        
+        # Pod crash loop alert
+        - alert: SpeedtarPodCrashLoop
+          expr: |
+            rate(kube_pod_container_status_restarts_total{namespace="speedtar"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod crash loop detected"
+            description: "Pod {{ $labels.pod }} is in crash loop"
+        
+        # Database connection alert
+        - alert: SpeedtarDatabaseConnectionFailed
+          expr: |
+            pg_up{namespace="speedtar"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Database connection failed"
+            description: "PostgreSQL database is not accessible"
+        
+        # Low disk space alert
+        - alert: SpeedtarLowDiskSpace
+          expr: |
+            kubelet_volume_stats_available_bytes{namespace="speedtar"} 
+            / kubelet_volume_stats_capacity_bytes{namespace="speedtar"} < 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Low disk space"
+            description: "PVC {{ $labels.persistentvolumeclaim }} has less than 10% space left"
+        
+        # High CPU usage alert
+        - alert: SpeedtarHighCPUUsage
+          expr: |
+            (
+              sum(rate(container_cpu_usage_seconds_total{namespace="speedtar",container!=""}[5m])) 
+              / 
+              sum(kube_pod_container_resource_limits{namespace="speedtar",resource="cpu"})
+            ) > 0.8
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU usage"
+            description: "CPU usage is above 80% for more than 10 minutes"
+        
+        # High memory usage alert
+        - alert: SpeedtarHighMemoryUsage
+          expr: |
+            (
+              sum(container_memory_working_set_bytes{namespace="speedtar",container!=""})
+              /
+              sum(kube_pod_container_resource_limits{namespace="speedtar",resource="memory"})
+            ) > 0.8
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage"
+            description: "Memory usage is above 80% for more than 10 minutes"
